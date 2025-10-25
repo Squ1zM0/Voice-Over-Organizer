@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2E7D32;
+      --primary-light: #66BB6A;
+      --primary-dark: #1B5E20;
+      --bg: linear-gradient(135deg,#E8F5E9,#F1F5F2);
+      --surface: rgba(255,255,255,0.9);
+      --border: rgba(200,230,201,0.6);
+      --shadow: rgba(17,24,39,0.1);
+      --muted: #6b6b6b;
+      --hover: rgba(102,187,106,0.08);
+      --accent: #A5D6A7;
+    }
+
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family:'Roboto',sans-serif; background:var(--bg); color:#222; min-height:100vh; display:flex; flex-direction:column; }
+
+    /* TOP TABS (no horizontal scroll) */
+    .tabs {
+      display:flex; align-items:center; gap:6px; padding:8px;
+      background:var(--surface); border-bottom:1px solid var(--border);
+      box-shadow:0 2px 16px var(--shadow); position:sticky; top:0; z-index:10;
+      overflow:hidden; user-select:none;
+    }
+    .tab {
+      display:flex; align-items:center; gap:6px; padding:8px 10px;
+      border-radius:12px; cursor:pointer; font-weight:600; color:#fff;
+      border:1px solid transparent; transition:.2s; white-space:nowrap; max-width:100%;
+      background:var(--primary-dark);
+    }
+    .tab:hover { background:var(--hover); color:var(--primary-dark); }
+    .tab.active { background:var(--primary-light); color:#fff; }
+    .tab .material-icons { font-size:18px; flex:0 0 auto; }
+    .tab .label { font-size:13px; overflow:hidden; text-overflow:ellipsis; }
+
+    /* "More" tab */
+    .tab.more { margin-left:auto; position:relative; display:none; }
+    .more-menu {
+      position:absolute; right:0; top:36px; background:#fff; border:1px solid var(--border);
+      border-radius:12px; box-shadow:0 8px 28px var(--shadow); display:none; min-width:180px; overflow:hidden;
+    }
+    .more-menu .menu-item {
+      display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-weight:500; color:var(--primary-dark);
+      border-bottom:1px solid rgba(0,0,0,0.04);
+    }
+    .more-menu .menu-item:last-child { border-bottom:none; }
+    .more-menu .menu-item:hover { background:var(--hover); }
+
+    /* MAIN */
+    main { padding:12px; display:flex; flex-direction:column; gap:12px; }
+    .card {
+      background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 8px 28px var(--shadow);
+    }
+
+    h1 { font-size:18px; font-weight:700; color:var(--primary-dark); }
+    label { display:block; font-weight:600; color:#2E7D32; margin-bottom:6px; font-size:12px; }
+    input, select {
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--border);
+      background:#fff; font-size:13px; margin-bottom:10px;
+    }
+
+    .row { display:flex; flex-wrap:wrap; gap:10px; }
+    .row > * { flex:1; min-width:200px; }
+
+    .btn {
+      background:var(--primary); color:#fff; padding:9px 12px; border-radius:12px; border:none; font-weight:600;
+      cursor:pointer; transition:.2s; box-shadow:0 4px 12px rgba(0,0,0,0.12);
+    }
+    .btn:hover { background:var(--primary-light); transform:translateY(-1px); }
+    .btn.secondary { background:#fff; color:var(--primary); border:1px solid var(--border); }
+    .btn.secondary:hover { background:rgba(245,250,245,0.8); }
+
+    #notification { display:none; padding:10px 12px; border-radius:12px; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.12); }
+    #notification.success { background:#E8F5E9; color:#1B5E20; border:1px solid #C8E6C9; }
+    #notification.error { background:#FFEBEE; color:#C62828; border:1px solid #FFCDD2; }
+
+    /* Audition quick chips */
+    .chipbar { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip {
+      background:#fff; color:#1B5E20; border:1px solid var(--border);
+      padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer; transition:.2s; user-select:none; flex:0 0 auto;
+    }
+    .chip:hover { background:var(--hover); }
+    .chip.active { background:var(--primary-light); color:#fff; border-color:transparent; }
+
+    @media (max-width: 420px) { .tab .label { display:none; } }
+
+    .metrics { display:flex; flex-wrap:wrap; gap:10px; }
+    .kpi {
+     background:#fff; border:1px solid var(--border); border-radius:12px;
+     padding:12px; flex:1 1 160px; box-shadow:0 4px 12px rgba(0,0,0,0.06);
+    }
+    .kpi .label { font-size:12px; color:#6b6b6b; font-weight:600; }
+    .kpi .value { font-size:22px; font-weight:800; color:#1B5E20; line-height:1.2; margin-top:4px; }
+    .kpi .sub   { font-size:11px; color:#6b6b6b; margin-top:4px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Tabs -->
+  <div class="tabs" id="tabstrip" role="tablist" aria-label="Voice Tracker Sections">
+    <div class="tab active" data-section="dashboard" role="tab" aria-selected="true" title="Dashboard">
+      <span class="material-icons">home</span><span class="label">Dashboard</span>
+    </div>
+    <div class="tab" data-section="updates" role="tab" title="Updates">
+      <span class="material-icons">build</span><span class="label">Updates</span>
+    </div>
+    <div class="tab" data-section="search" role="tab" title="Search">
+      <span class="material-icons">search</span><span class="label">Search</span>
+    </div>
+    <div class="tab" data-section="insights" role="tab" title="Insights">
+      <span class="material-icons">insights</span><span class="label">Insights</span>
+    </div>
+    <div class="tab" data-section="auditions" role="tab" title="Auditions">
+      <span class="material-icons">headset</span><span class="label">Auditions</span>
+    </div>
+    <div class="tab" data-section="actions" role="tab" title="Actions">
+      <span class="material-icons">download</span><span class="label">Actions</span>
+    </div>
+
+    <!-- More (auto appears if needed) -->
+    <div class="tab more" id="moreTab" title="More">
+      <span class="material-icons">more_horiz</span><span class="label">More</span>
+      <div class="more-menu" id="moreMenu"></div>
+    </div>
+  </div>
+
+  <main>
+    <!-- Title row -->
+    <div class="card">
+      <div class="row" style="align-items:center;">
+        <h1>🎙️ Voice Project Tracker</h1>
+        <div style="flex:1"></div>
+        <button class="btn secondary" onclick="refreshSheet()">Refresh Sheet</button>
+        <button class="btn" onclick="exportPDF()">Export PDF</button>
+      </div>
+      <div style="color:#6b6b6b; font-size:12px; margin-top:4px;">Use the tabs to navigate. All operations run via Apps Script.</div>
+    </div>
+
+    <section id="dashboard" class="card" role="region">
+      <div class="row">
+        <button class="btn" onclick="quickFilter('Current')">Current</button>
+        <button class="btn secondary" onclick="quickFilter('Past')">Past</button>
+        <button class="btn secondary" onclick="quickFilter('All')">All</button>
+      </div>
+    </section>
+
+    <section id="updates" class="card" style="display:none;">
+      <div class="row">
+        <div>
+          <label for="character">Character</label>
+          <select id="character"></select>
+        </div>
+        <div>
+          <label for="fileUrl">Specific File URL (optional)</label>
+          <input id="fileUrl" placeholder="Paste a File Link URL (optional)">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="link">Final Production Link</label>
+          <input id="link" placeholder="https://...">
+        </div>
+        <div>
+          <label for="status">Status</label>
+          <select id="status"><option>Current</option><option>Past</option></select>
+        </div>
+      </div>
+      <button class="btn" onclick="applySingle()">Apply Update</button>
+
+      <hr style="margin:14px 0;border:none;border-top:1px solid var(--border);">
+
+      <div class="row">
+        <div>
+          <label for="bulkCharacters">Bulk Characters</label>
+          <select id="bulkCharacters" multiple></select>
+        </div>
+        <div>
+          <label for="bulkFiles">Bulk Files (optional)</label>
+          <select id="bulkFiles" multiple></select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="bulkLink">Bulk Final Link</label>
+          <input id="bulkLink" placeholder="https://...">
+        </div>
+        <div>
+          <label for="bulkStatus">Bulk Status</label>
+          <select id="bulkStatus">
+            <option value="">-- No change --</option>
+            <option>Current</option>
+            <option>Past</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" onclick="applyBulk()">Apply Bulk Changes</button>
+    </section>
+
+    <section id="search" class="card" style="display:none;">
+      <div class="row">
+        <div><label for="searchCharacter">Search by Character</label><input id="searchCharacter"></div>
+        <div><label for="searchFolder">Search by Folder</label><input id="searchFolder"></div>
+        <div><label for="searchFile">Search by File Name</label><input id="searchFile"></div>
+        <div>
+          <label for="statusFilter">Filter by Status</label>
+          <select id="statusFilter"><option>All</option><option>Current</option><option>Past</option></select>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" onclick="searchProjects()">Search</button>
+        <button class="btn secondary" onclick="applyStatusFilter()">Filter</button>
+      </div>
+    </section>
+
+    <section id="insights" class="card" style="display:none;">
+  <div class="row" style="align-items:center;">
+    <h1 style="margin:0;">📈 Insights</h1>
+    <div style="flex:1"></div>
+    <button class="btn secondary" onclick="loadInsights()">Refresh</button>
+  </div>
+
+  <!-- KPI grid -->
+  <div id="insightsKpis" class="metrics" style="margin-top:10px;"></div>
+
+  <!-- Recent activity -->
+  <div class="card" style="margin-top:12px;">
+    <div class="row" style="align-items:center;">
+      <h2 style="font-size:16px; margin:0;">Recent Activity</h2>
+      <div style="flex:1"></div>
+      <small style="color:#6b6b6b">Latest additions across Voice & Auditions</small>
+    </div>
+    <div style="overflow:auto; margin-top:8px;">
+      <table class="table" id="insightsRecentTable" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border);">When</th>
+            <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border);">Type</th>
+            <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border);">Character</th>
+            <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border);">File</th>
+            <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border);">Status</th>
+          </tr>
+        </thead>
+        <tbody id="insightsRecentBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+    <section id="auditions" class="card" style="display:none;">
+      <div class="row" style="align-items:center;">
+        <div class="chipbar">
+          <button class="chip active"   data-aud="All"       onclick="quickAudition('All', this)">All</button>
+          <button class="chip"          data-aud="Pending"   onclick="quickAudition('Pending', this)">Pending</button>
+          <button class="chip"          data-aud="Submitted" onclick="quickAudition('Submitted', this)">Submitted</button>
+          <button class="chip"          data-aud="Booked"    onclick="quickAudition('Booked', this)">Booked</button>
+          <button class="chip"          data-aud="Passed"    onclick="quickAudition('Passed', this)">Passed</button>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn secondary" onclick="syncNow()">Sync Status</button>
+        <button class="btn" onclick="refreshAuditions()">Refresh</button>
+      </div>
+
+      <!-- Quick search row -->
+      <div class="row" style="margin-top:10px; align-items:flex-end; gap:8px;">
+        <div style="flex:1;">
+          <label for="auditionSearch">Quick search (character / file / folder)</label>
+          <input id="auditionSearch" placeholder="Type and press Enter or click Search">
+        </div>
+        <button class="btn" onclick="doAuditionSearch()">Search</button>
+        <button class="btn secondary" onclick="clearAuditionSearch()">Clear</button>
+      </div>
+    </section>
+
+    <section id="actions" class="card" style="display:none;">
+      <div class="row">
+        <button class="btn" onclick="refreshSheet()">Refresh Voice Sheet</button>
+        <button class="btn secondary" onclick="exportPDF()">Export Summary PDF</button>
+      </div>
+    </section>
+
+    <div id="notification"></div>
+  </main>
+
+  <script>
+    // ===== Tabs + Overflow to "More" =====
+    const tabstrip = document.getElementById('tabstrip');
+    const allTabs = Array.from(tabstrip.querySelectorAll('.tab:not(.more)'));
+    const moreTab = document.getElementById('moreTab');
+    const moreMenu = document.getElementById('moreMenu');
+
+    function activateSection(id){
+      document.querySelectorAll('main section').forEach(s => s.style.display = (s.id === id ? 'block' : 'none'));
+      allTabs.forEach(t => t.classList.toggle('active', t.dataset.section === id));
+      allTabs.forEach(t => t.setAttribute('aria-selected', t.dataset.section === id ? 'true' : 'false'));
+      moreMenu.style.display = 'none';
+    }
+    allTabs.forEach(t => t.addEventListener('click', () => activateSection(t.dataset.section)));
+
+
+  function activateSection(id){
+    document.querySelectorAll('main section').forEach(s => s.style.display = (s.id === id ? 'block' : 'none'));
+    allTabs.forEach(t => t.classList.toggle('active', t.dataset.section === id));
+    allTabs.forEach(t => t.setAttribute('aria-selected', t.dataset.section === id ? 'true' : 'false'));
+    moreMenu.style.display = 'none';
+    if (id === 'insights') loadInsights();
+  }
+
+    function layoutTabs(){
+      allTabs.forEach(t => t.style.display = 'flex');
+      moreMenu.innerHTML = '';
+      moreTab.style.display = 'none';
+
+      const available = tabstrip.clientWidth - 10; // buffer
+      let used = 0;
+      for (const t of allTabs) {
+        used += t.offsetWidth + 6;
+        if (used > available) {
+          const item = document.createElement('div');
+          item.className = 'menu-item';
+          item.innerHTML = `<span class="material-icons">${t.querySelector('.material-icons').textContent}</span><span>${t.querySelector('.label')?.textContent || t.title}</span>`;
+          item.addEventListener('click', () => activateSection(t.dataset.section));
+          moreMenu.appendChild(item);
+          t.style.display = 'none';
+          moreTab.style.display = 'flex';
+        }
+      }
+    }
+    moreTab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moreMenu.style.display = (moreMenu.style.display === 'block' ? 'none' : 'block');
+    });
+    document.addEventListener('click', () => { moreMenu.style.display = 'none'; });
+    window.addEventListener('load', layoutTabs);
+    window.addEventListener('resize', layoutTabs);
+
+    // ===== Data bootstrapping (guard optional elements) =====
+    google.script.run.withSuccessHandler(function(chars){
+      ['character','bulkCharacters','countCharacter'].forEach(id=>{
+        const sel = document.getElementById(id);
+        if (!sel) return; // counts UI may not exist
+        sel.innerHTML = '';
+        (chars || []).forEach(c=>{
+          const opt=document.createElement('option'); opt.value=c; opt.text=c; sel.appendChild(opt);
+        });
+      });
+      const countSelect = document.getElementById('countCharacter');
+      if (countSelect) updateCounts();
+    }).getCharacters();
+
+    const bulkCharsEl = document.getElementById('bulkCharacters');
+    if (bulkCharsEl) {
+      bulkCharsEl.addEventListener('change', function(){
+        var selectedChars = Array.from(this.selectedOptions).map(o=>o.value);
+        google.script.run.withSuccessHandler(function(files){
+          const fileSel = document.getElementById('bulkFiles'); if (!fileSel) return;
+          fileSel.innerHTML='';
+          (files || []).forEach(f=>{
+            const opt=document.createElement('option'); opt.value=f.url; opt.text=f.fileName; fileSel.appendChild(opt);
+          });
+        }).getFilesByCharacters(selectedChars);
+      });
+    }
+
+    function showNotification(msg,type){
+      const n=document.getElementById('notification');
+      n.textContent=msg; n.className=type; n.style.display='block';
+      setTimeout(()=>n.style.display='none',3000);
+    }
+
+    // ===== Updates / Bulk =====
+    function applySingle(){
+      const charName=document.getElementById('character')?.value || '';
+      const fileUrl=document.getElementById('fileUrl')?.value || '';
+      const link=document.getElementById('link')?.value || '';
+      const status=document.getElementById('status')?.value || '';
+      if(!charName) return showNotification("Select a character.","error");
+      google.script.run
+        .withSuccessHandler(count => showNotification("Updated "+count+" row(s).","success"))
+        .withFailureHandler(err => showNotification(err.message,"error"))
+        .applyLinkAndStatusForCharacter(charName,fileUrl,link,status);
+    }
+
+    function applyBulk(){
+      const chars=Array.from(document.getElementById('bulkCharacters')?.selectedOptions || []).map(o=>o.value);
+      const files=Array.from(document.getElementById('bulkFiles')?.selectedOptions || []).map(o=>o.value);
+      const status=document.getElementById('bulkStatus')?.value || '';
+      const link=document.getElementById('bulkLink')?.value || '';
+      if(chars.length===0) return showNotification("Select at least one character.","error");
+      google.script.run
+        .withSuccessHandler(count => showNotification("Bulk update applied to "+count+" row(s).","success"))
+        .withFailureHandler(err => showNotification(err.message,"error"))
+        .applyBulkLinkAndStatus(chars,files,link,status);
+    }
+
+    function loadInsights(){ google.script.run.withSuccessHandler(renderInsights).getStatsAndRecent(); }
+    function renderInsights(d){
+     try {
+        const kpis = [
+          { label: 'Voice — Total',        value: d.voice.total },
+          { label: 'Voice — Current',      value: d.voice.current,   sub: `Past: ${d.voice.past}` },
+          { label: 'Voice — Added (7d)',   value: d.voice.recent7,   sub: `30d: ${d.voice.recent30}` },
+          { label: 'Auditions — Total',    value: d.auditions.total },
+          { label: 'Auditions — Pending',  value: d.auditions.pending, sub: `Submitted: ${d.auditions.submitted}` },
+          { label: 'Auditions — Booked',   value: d.auditions.booked,  sub: `Passed: ${d.auditions.passed}` },
+          { label: 'Auditions — Added (7d)', value: d.auditions.recent7, sub: `30d: ${d.auditions.recent30}` }
+        ];
+
+        const kpiWrap = document.getElementById('insightsKpis');
+        kpiWrap.innerHTML = '';
+        kpis.forEach(k => {
+         const box = document.createElement('div');
+          box.className = 'kpi';
+          box.innerHTML = `
+            <div class="label">${escapeHtml(k.label)}</div>
+            <div class="value">${numberFormat(k.value)}</div>
+            ${k.sub ? `<div class="sub">${escapeHtml(k.sub)}</div>` : ''}
+          `;
+          kpiWrap.appendChild(box);
+       });
+
+        const body = document.getElementById('insightsRecentBody');
+        body.innerHTML = '';
+        (d.recent || []).forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="padding:8px; border-bottom:1px solid var(--border);">${fmtDate(r.date)}</td>
+           <td style="padding:8px; border-bottom:1px solid var(--border);">${escapeHtml(r.type)}</td>
+            <td style="padding:8px; border-bottom:1px solid var(--border);">${escapeHtml(r.character || '')}</td>
+            <td style="padding:8px; border-bottom:1px solid var(--border);">${escapeHtml(r.fileName || '')}</td>
+           <td style="padding:8px; border-bottom:1px solid var(--border);">${escapeHtml(r.status || '')}</td>
+         `;
+         body.appendChild(tr);
+        });
+
+     } catch(e){
+       showNotification('Failed to render insights: ' + e, 'error');
+      }
+    }
+
+    function numberFormat(n){ n = Number(n||0); return n.toLocaleString(); }
+    function fmtDate(iso){
+      if (!iso) return '-';
+      const d = new Date(iso);
+      if (String(d) === 'Invalid Date') return '-';
+      return d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
+    }
+    function escapeHtml(s){
+     return String(s==null?'':s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    // ===== Voice Projects quick filter =====
+    function quickFilter(status){
+      const sel = document.getElementById('statusFilter');
+      if (sel) sel.value = status;
+      google.script.run.filterByStatus(status);
+    }
+    function searchProjects(){
+      const c=document.getElementById('searchCharacter')?.value || '';
+      const f=document.getElementById('searchFolder')?.value || '';
+      const fn=document.getElementById('searchFile')?.value || '';
+      google.script.run.searchVoiceProjects(c,f,fn);
+    }
+    function applyStatusFilter(){
+      const status=document.getElementById('statusFilter')?.value || 'All';
+      google.script.run.filterByStatus(status);
+    }
+
+    // ===== Auditions: status chips + quick search =====
+    function currentAuditionStatus(){
+      const active = document.querySelector('.chipbar .chip.active');
+      return active ? active.getAttribute('data-aud') : 'All';
+    }
+    function doAuditionSearch(){
+      const q = (document.getElementById('auditionSearch')?.value || '').trim();
+      const status = currentAuditionStatus();
+      google.script.run.filterAuditionStatus(status, q);
+    }
+    function clearAuditionSearch(){
+      const input = document.getElementById('auditionSearch');
+      if (input) input.value = '';
+      doAuditionSearch();
+    }
+    function quickAudition(status, el){
+      document.querySelectorAll('.chipbar .chip').forEach(c => c.classList.remove('active'));
+      if (el) el.classList.add('active');
+      doAuditionSearch(); // use the search term too
+    }
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && (e.target || {}).id === 'auditionSearch') {
+        doAuditionSearch();
+      }
+    });
+
+    // ===== Counts (optional UI) =====
+    function updateCounts(){
+      const sel = document.getElementById('countCharacter');
+      if(!sel) return;
+      const charName = sel.value || '';
+      google.script.run.withSuccessHandler(function(counts){
+        const p=document.getElementById('charCounts');
+        if (!p) return;
+        if(!counts || !counts[charName]) p.textContent="Total Files: 0 | Files with Final Link: 0";
+        else { const c=counts[charName]; p.textContent="Total Files: "+c.total+" | Files with Final Link: "+c.duplicates; }
+      }).getCharacterCounts();
+    }
+    const countSel = document.getElementById('countCharacter');
+    if (countSel) countSel.addEventListener('change', updateCounts);
+
+    // ===== Auditions refresh + sync =====
+    function refreshAuditions(){
+      google.script.run.withSuccessHandler(()=>{
+        showNotification("Auditions refreshed!","success");
+        doAuditionSearch(); // reapply active chip + query
+      }).updateAuditions();
+    }
+    function syncNow(){
+      google.script.run.withSuccessHandler(function(res){
+        const b = (res && res.booked) || 0;
+        const s = (res && res.submitted) || 0;
+        showNotification(`Synced: ${b} → Booked, ${s} → Submitted`, 'success');
+        doAuditionSearch();
+      }).syncNow();
+    }
+
+    // ===== Voice sheet actions =====
+    function refreshSheet(){ google.script.run.withSuccessHandler(()=>showNotification("Voice sheet refreshed!","success")).updateVoiceProjects(); }
+    function exportPDF(){ google.script.run.withSuccessHandler(name=>showNotification("PDF exported: "+name,"success")).exportSummaryPDF(); }
+
+    // Default: All + empty search for auditions
+    window.addEventListener('load', () =>
+      quickAudition('All', document.querySelector('.chipbar .chip[data-aud="All"]'))
+    );
+  </script>
+</body>
+</html>
