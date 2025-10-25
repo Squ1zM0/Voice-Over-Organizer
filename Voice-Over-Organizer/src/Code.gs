@@ -6,8 +6,8 @@
 // =====================
 // Configuration (GLOBAL)
 // =====================
-var VOICE_FOLDER_ID = '1lq_rbzqRj_keQ3XXwtWUYG7z6hNGTxK7'; // main voice projects folder
-var AUDITION_FOLDER_ID = '1YtKGcqfCC3zR5XriayoMw-SpvmA2Exmk'; // auditions folder
+var VOICE_FOLDER_ID = 'PASTE_PROJECT_FOLDER_ID_HERE'; // main voice projects folder
+var AUDITION_FOLDER_ID = 'PASTE_AUDTIONS_FOLDER_HERE'; // auditions folder
 
 // Header fingerprints (to locate sheets reliably)
 var VOICE_HEADERS = ["Folder", "File Name", "Character", "Date Added", "Mime Type", "File Link", "Final Link", "Status"];
